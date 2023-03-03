@@ -1,3 +1,4 @@
+import requests
 from configparser import ConfigParser
 from tabulate import tabulate
 from linkedin_api import Linkedin
@@ -12,12 +13,12 @@ print("*******************************************")
 # Load config file
 config = ConfigParser()
 config.read('linkedin.cfg')
-username = config['LINKEDIN']['username']
-password = config['LINKEDIN']['password']
-api_key = config['HUNTERIO']['api_key']
+api_key = config.get('hunterio', 'api_key')
+access_token = config.get('linkedin', 'access_token')
+access_secret = config.get('linkedin', 'access_secret')
 
 # Login to LinkedIn
-api = Linkedin(username, password)
+api = Linkedin(access_token, access_secret)
 
 # Prompt user for search query
 search_query = input('Enter company name to search for: ')
@@ -39,7 +40,7 @@ company_data = api.get_company(company_id)
 company_name = company_data['basicCompany']['localizedName']
 company_description = company_data['basicCompany']['description']
 
-# Use Hunter API to get email addresses
+# Enrich data with Hunter API
 suffix = company_data['basicCompany']['url'].split('/')[-2]
 url = f"https://api.hunter.io/v2/domain-search?domain={suffix}&api_key={api_key}"
 r = requests.get(url)
@@ -56,8 +57,12 @@ if 'headquarters' in company_data:
     contact_info_dict['Phone'] = company_data['headquarters']['phone']
     contact_info_dict['Email'] = company_data['headquarters']['email']
 
+# Add enriched data to contact_info_dict
+if emails:
+    contact_info_dict['Emails'] = ', '.join(emails)
+
 # Print results in table format
-data = [['Company Name', company_name], ['Company Description', company_description], ['Emails', ', '.join(emails)]]
+data = [['Company Name', company_name], ['Company Description', company_description]]
 for key, value in contact_info_dict.items():
     data.append([key, value])
 
