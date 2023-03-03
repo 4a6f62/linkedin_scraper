@@ -2,3 +2,4 @@ beautifulsoup4==4.10.0
 configparser==5.3.0
 requests==2.26.0
 tabulate==0.8.9
+linkedin-api==2.0.0a5
