@@ -10,7 +10,7 @@ print("*******************************************")
 
 # Read config file for LinkedIn credentials and Hunter.io API key
 config = {}
-with open('config.cfg', 'r') as f:
+with open('linkedin.cfg, 'r') as f:
     for line in f:
         key, value = line.strip().split('=')
         config[key] = value
