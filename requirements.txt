@@ -1,2 +1,4 @@
-beautifulsoup4==4.9.3
-requests==2.25.1
+beautifulsoup4==4.10.0
+configparser==5.1.1
+requests==2.26.0
+tabulate==0.8.9
