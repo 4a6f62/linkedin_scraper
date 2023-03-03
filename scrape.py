@@ -1,20 +1,5 @@
-import configparser
-import linkedin_api
-from tabulate import tabulate
-import hunterio
-
-# Read the access token and secret from the configuration file
-config = configparser.ConfigParser()
-config.read('linkedin.cfg')
-access_token = config.get('linkedin', 'access_token')
-access_secret = config.get('linkedin', 'access_secret')
-hunter_api_key = config.get('hunter', 'api_key')
-
-# Authenticate with the LinkedIn API using your access token and secret key
-linkedin = linkedin_api.Linkedin(access_token=access_token, access_secret=access_secret)
-
-# Initialize the Hunter.io client with your API key
-hunter = hunterio.Hunterio(hunter_api_key)
+import requests
+from bs4 import BeautifulSoup
 
 # Print header message
 print("*******************************************")
@@ -23,37 +8,56 @@ print("*      LinkedIn Scraper by 4a6f62          *")
 print("*                                         *")
 print("*******************************************")
 
-# Prompt user for company search query
-search_query = input("Enter the company name to search: ")
+# Read config file for LinkedIn credentials and Hunter.io API key
+config = {}
+with open('config.cfg', 'r') as f:
+    for line in f:
+        key, value = line.strip().split('=')
+        config[key] = value
 
-# Search for the company by its name
-company = linkedin.search_company(search_query)
+# Set up LinkedIn login session
+login_url = 'https://www.linkedin.com/uas/login-submit'
+client = requests.Session()
+html = client.get('https://www.linkedin.com/')
+soup = BeautifulSoup(html.content, 'html.parser')
+csrf = soup.find('input', {'name': 'loginCsrfParam'}).get('value')
+login_information = {
+    'session_key': config['LINKEDIN_USERNAME'],
+    'session_password': config['LINKEDIN_PASSWORD'],
+    'loginCsrfParam': csrf,
+}
+client.post(login_url, data=login_information)
 
-# Get a list of the company's employees
-employees = linkedin.search_people(company)
+# Get company search query from user
+search_query = input('Enter the company name to search for: ')
 
-# Create a list of dictionaries to hold the employee information
-employee_info = []
-for employee in employees:
-    name = employee.name
-    function = employee.function
-    phone_number = employee.phone_number
+# Perform search on LinkedIn
+search_url = f'https://www.linkedin.com/search/results/people/?keywords={search_query}&origin=SWITCH_SEARCH_VERTICAL'
+response = client.get(search_url)
+soup = BeautifulSoup(response.content, 'html.parser')
 
-    # Use the Hunter.io API to look up the employee's email address
-    hunter_result = hunter.email_finder(domain=company.website, full_name=name)
+# Parse search results for name, position, and profile URL
+results = soup.find_all('li', {'class': 'search-result search-result__occluded-item'})
+for result in results:
+    name = result.find('span', {'class': 'actor-name'}).get_text().strip()
+    position = result.find('p', {'class': 'subline-level-1'}).get_text().strip()
+    profile_url = result.find('a').get('href')
 
-    # Extract the email address from the Hunter.io result
-    email = hunter_result['data']['email']
+    # Get email and phone number using Hunter.io
+    domain = profile_url.split('/')[4].split('?')[0]
+    hunter_url = f"https://api.hunter.io/v2/domain-search?domain={domain}&api_key={config['HUNTER_API_KEY']}"
+    hunter_response = requests.get(hunter_url)
+    hunter_content = hunter_response.json()
+    email = hunter_content['data']['emails'][0]['value'] if hunter_content['data']['emails'] else ''
+    phone = hunter_content['data']['phones'][0]['value'] if hunter_content['data']['phones'] else ''
 
-    # Add the employee information to the list
-    employee_info.append({'Name': name, 'Function': function, 'Email': email, 'Phone Number': phone_number})
-
-# Format the employee information as a table using the tabulate library
-table_headers = ['Name', 'Function', 'Email', 'Phone Number']
-table = tabulate(employee_info, headers=table_headers)
-
-# Print the table
-print(table)
+    # Print results
+    print('Name:', name)
+    print('Position:', position)
+    print('Profile URL:', profile_url)
+    print('Email:', email)
+    print('Phone:', phone)
+    print('--------------------------------------')
 
 # Print legal notice
 print("***************************************************")
