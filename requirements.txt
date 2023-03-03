@@ -1,9 +1,2 @@
-certifi==2021.5.30
-charset-normalizer==2.0.6
-idna==3.2
-linkedin-api==2.0.0a5
-requests==2.26.0
-six==1.16.0
-tabulate==0.8.9
-urllib3==1.26.6
-hunterio==2.2.0
+beautifulsoup4==4.9.3
+requests==2.25.1
