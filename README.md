@@ -5,7 +5,9 @@ This is a Python script that uses the LinkedIn API and the Hunter.io API to retr
 ## Installation
 
 1. Clone or download the repository to your local machine.
+
 2. Install the required Python packages using pip:
+
 pip install -r requirements.txt
 
 
